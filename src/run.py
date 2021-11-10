@@ -124,6 +124,7 @@ def on_connect(client, userdata, flags, rc):
         logging.error(f"MQTT connection failed with [{rc}]")
         exit(1)
     logging.info("MQTT connected")
+    publish_discovery(client)
     logging.info(f"Subscribing to [{config.topic}/{config.id}/activate]")
     client.subscribe(f"{config.topic}/{config.id}/activate", 2)
     def callback():
