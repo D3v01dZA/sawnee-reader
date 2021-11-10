@@ -14,4 +14,4 @@ RUN pip3 install paho-mqtt
 RUN mkdir -p /workspace
 ADD ./src/. /workspace/
 
-ENTRYPOINT [ "python3", "/workspace/run.py", "--config", "/workspace/config.yml",  "--file", "/data/file.yaml"]
+ENTRYPOINT [ "python3", "/workspace/run.py", "--config", "/data/config.yml",  "--file", "/data/file.yaml"]
