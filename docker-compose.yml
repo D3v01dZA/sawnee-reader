@@ -1,0 +1,15 @@
+version: "3"
+services:
+  dev:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - .:/workspace
+    command: /bin/sh -c "while sleep 1000; do :; done"
+  firefox:
+    image: selenium/standalone-firefox:94.0
+    ports:
+      - 7900:7900 #noVNC
+  mqtt:
+    image: eclipse-mosquitto:1.6

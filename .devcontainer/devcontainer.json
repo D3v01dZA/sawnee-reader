@@ -1,0 +1,10 @@
+{
+    "name": "Sawnee",
+    "dockerComposeFile": "../docker-compose.yml",
+    "service": "dev",
+    "workspaceFolder": "/workspace",
+    "remoteUser": "vscode",
+    "extensions": [
+      "ms-python.python"
+    ]
+  }

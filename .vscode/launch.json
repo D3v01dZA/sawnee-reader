@@ -1,0 +1,23 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run",
+            "type": "python",
+            "request": "launch",
+            "module": "run",
+            "cwd": "${workspaceFolder}/src",
+            "args": ["--config", "/workspace/test/config.yml", "--file", "/workspace/test/value.yml"]
+        },
+        {
+            "name": "Publish Active To Test Server",
+            "type": "python",
+            "request": "launch",
+            "module": "active",
+            "cwd": "${workspaceFolder}/test"
+        },
+    ]
+}

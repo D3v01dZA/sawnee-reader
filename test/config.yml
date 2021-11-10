@@ -1,0 +1,8 @@
+mqtt:
+  name: test
+  id: test
+
+sawnee:
+  username: <>
+  password: <>
+  interval: 20
