@@ -115,6 +115,7 @@ def publish_discovery(client):
             "ids": config.id
         }
     }
+    logging.info(f"Publishing discovery to homeassistant/sensor/{config.topic}/{config.id}/config")
     client.publish(f"homeassistant/sensor/{config.topic}/{config.id}/config", json.dumps(json_value), 2, True)
 
 repeating_timer = repeat.RepeatingTimer(sawnee_config.interval)
