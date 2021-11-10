@@ -102,7 +102,7 @@ def fetch_value_and_publish(client):
 
 def publish_discovery(client):
     json_value = {
-        "name": {config.topic}.capitalize(), 
+        "name": config.topic.capitalize(), 
         "state_topic": f"{config.topic}/{config.id}/state",
         "unique_id": f"{config.id}-sawnee",
         "device_class": "energy",
