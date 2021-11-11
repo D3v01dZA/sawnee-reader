@@ -90,6 +90,7 @@ def fetch_value():
         return write_value(value)
     except Exception as ex:
         logging.error(f"Error: {ex}")
+        return None
     finally:
         logging.info("Closing connection")
         driver.quit()
@@ -97,8 +98,11 @@ def fetch_value():
 def fetch_value_and_publish(client):
     logging.info(f"Refreshing")
     value = fetch_value()
-    logging.info(f"Publishing {value} to [{config.topic}/{config.id}/status]")
-    client.publish(f"{config.topic}/{config.id}/state", value, 2, True)
+    if value is None:
+        logging.error("Nothing to publish")
+    else:
+        logging.info(f"Publishing {value} to [{config.topic}/{config.id}/status]")
+        client.publish(f"{config.topic}/{config.id}/state", value, 2, True)
 
 def publish_discovery(client):
     json_value = {
