@@ -90,6 +90,7 @@ def fetch_value():
         return write_value(value)
     except Exception as ex:
         logging.error(f"Error: {ex}")
+        driver.save_screenshot("/tmp/screenshot.png")
         return None
     finally:
         logging.info("Closing connection")
