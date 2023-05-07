@@ -6,10 +6,10 @@ import sawnee
 import repeat
 import datetime
 import json
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions
+import requests
+import time
+import datetime
+import calendar
 
 logging.basicConfig(format="%(asctime)s - %(message)s", level=logging.INFO)
 
@@ -31,12 +31,12 @@ sawnee_config = sawnee.create_config(config_file)
 
 def write_value(value):
     with open(args.file, "r") as file:
-	    try:
-		    value_file = yaml.safe_load(file)
-	    except yaml.YAMLError as ex:
-		    logging.error("Invalid value file")
-		    print(ex)
-		    exit(1)
+        try:
+            value_file = yaml.safe_load(file)
+        except yaml.YAMLError as ex:
+            logging.error("Invalid value file")
+            print(ex)
+            exit(1)
     currentDateTime = datetime.datetime.now()
     date = currentDateTime.date()
     year = int(date.strftime("%Y"))
@@ -54,47 +54,76 @@ def write_value(value):
     return total
 
 def fetch_value():
-    logging.info("Opening connection")
-    options = webdriver.FirefoxOptions()
-    driver = webdriver.Remote(f"http://{sawnee_config.selenium}:4444", options=options)
+    session = requests.Session()
     try:
-        logging.info("Opening Sawnee")
-        driver.get("https://sawnee.smarthub.coop/Login.html")
-        logging.info("Entering username")
-        WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located((By.ID, "LoginUsernameTextBox"))).send_keys(sawnee_config.username)
-        logging.info("Entering password")
-        WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located((By.ID, "LoginPasswordTextBox"))).send_keys(sawnee_config.password)
-        logging.info("Submitting")
-        WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located((By.ID, "LoginSubmitButton"))).click()
-        logging.info("Clicking view usage")
-        WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located((By.ID, "ViewUsageLink"))).click()
-        logging.info("Clicking usage explorer")
-        WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located((By.XPATH, "//div[text()='Usage Explorer']"))).click()
-        logging.info("Waiting for charts")
-        WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, "highcharts-container")))
-        logging.info("Clicking quick date control")
-        WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located((By.XPATH, "//*[@id='quickPicks']/*[@name='dateControl']"))).click()
-        logging.info("Clicking year to date")
-        year_to_date_button = None
-        for button in driver.find_elements(By.CLASS_NAME, "btn-default"):
-            if (button.text == "Year to Date"):
-                year_to_date_button = button
-        if year_to_date_button is None:
-            raise Exception("Could not find year to date")
-        year_to_date_button.click()
-        logging.info("Waiting for charts")
-        WebDriverWait(driver, 30).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, "highcharts-container")))
-        logging.info("Finding total")
-        value = int(driver.find_element(By.XPATH, "//table[@id='ce-alternateRowColor1']//tr[position()='6']/td[@align='right']/div").text.replace(",", ""))
-        logging.info(f"Total {value}")
-        return write_value(value)
+        logging.info("Logging in")
+        login = session.post("https://sawnee.smarthub.coop/services/oauth/auth/v2", data={
+            "userId": sawnee_config.username, 
+            "password": sawnee_config.password,
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/112.0"
+        })
+        if login.status_code != 200:
+            logging.error(f"Login failed with {login.status_code}")
+            return None
+        
+        login_json = login.json()
+        status = login_json.get("status")
+        if status != "SUCCESS":
+            logging.error(f"Login failed with {status}")
+            return None
+        
+        auth = login_json.get("authorizationToken")
+        if (auth is None):
+            logging.error(f"No auth token")
+            return None
+        
+        expiration = login_json.get("expiration")
+        logging.info("Logged in")
+
+        to_dt = datetime.datetime.fromtimestamp(int(time.time()))
+        to_ux = calendar.timegm(to_dt.timetuple()) * 1000
+        from_dt = to_dt.replace(second=0, minute=0, hour=0, day=1, month=1)
+        from_ux = calendar.timegm(from_dt.timetuple()) * 1000
+        logging.info(f"Fetching data from {from_dt} to {to_dt}")
+
+        data = session.post("https://sawnee.smarthub.coop/services/secured/utility-usage", json={
+            "userId": sawnee_config.username,
+            "accountNumber": sawnee_config.account_number,
+            "serviceLocationNumber": sawnee_config.service_location_number,
+            "endDateTime": to_ux,
+            "startDateTime": from_ux,
+            "includeDemand": False,
+            "industries": ["ELECTRIC"],
+            "screen": "USAGE_EXPLORER",
+            "timeFrame": "DAILY"
+        }, headers={
+            "Authorization": f"Bearer {auth}",
+            "Content-Type": "application/json",
+            "CassandraCacheable": "USE_CACHE",
+            "X-NISC-SMARTHUB-CUSTOMERNUMBER": None,
+            "X-NISC-SMARTHUB-USERNAME": sawnee_config.username,
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/112.0"
+        })
+
+        if data.status_code != 200:
+            logging.error(f"Data failed with {data.status_code}")
+            return None
+        
+        chart_data = data.json().get("ELECTRIC")[0].get("meterToChartData")
+
+        total = 0
+        for key in chart_data.keys():
+            if key.__contains__(sawnee_config.service_location_number):
+                meter_data = chart_data.get(key)
+                for value in meter_data:
+                    total += value.get("y")
+
+        return write_value(total)
     except Exception as ex:
         logging.error(f"Error: {ex}")
-        driver.save_screenshot("/tmp/screenshot.png")
         return None
     finally:
         logging.info("Closing connection")
-        driver.quit()
 
 def fetch_value_and_publish(client):
     logging.info(f"Refreshing")

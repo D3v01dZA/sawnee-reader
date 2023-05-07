@@ -6,9 +6,9 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Grab dependencies
 RUN apt-get update && apt-get install -y python3 python3-pip
-RUN pip3 install selenium
 RUN pip3 install pyyaml
 RUN pip3 install paho-mqtt
+RUN pip3 install requests 
 
 # Create the workspace
 RUN mkdir -p /workspace

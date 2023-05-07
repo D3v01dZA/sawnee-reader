@@ -3,6 +3,8 @@ mqtt:
   id: test
 
 sawnee:
-  username: <>
-  password: <>
+  username: <user>
+  password: <password>
+  account_number: "<account no>"
+  service_location_number: "<location no>"
   interval: 20
