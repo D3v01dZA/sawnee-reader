@@ -40,7 +40,6 @@ def write_value(value):
     currentDateTime = datetime.datetime.now()
     date = currentDateTime.date()
     year = int(date.strftime("%Y"))
-    logging.info
     if (value_file.get(year) is not None and value_file[year] > value):
         raise Exception(f"Value in file {value_file[year]} is larger than retrieved value {value}")
     if (value_file.get(year) is None or value_file[year] != value):
@@ -77,7 +76,6 @@ def fetch_value():
             logging.error(f"No auth token")
             return None
         
-        expiration = login_json.get("expiration")
         logging.info("Logged in")
 
         to_dt = datetime.datetime.fromtimestamp(int(time.time()))
@@ -118,6 +116,7 @@ def fetch_value():
                 for value in meter_data:
                     total += value.get("y")
 
+        logging.info(f"Total fetched from {from_dt} to {to_dt} is {total}")
         return write_value(total)
     except Exception as ex:
         logging.error(f"Error: {ex}")
