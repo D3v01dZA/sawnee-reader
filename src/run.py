@@ -29,7 +29,7 @@ with open(args.config, "r") as file:
 config = mqtt.create_config(config_file)
 sawnee_config = sawnee.create_config(config_file)
 
-def write_value(value):
+def write_value(values):
     with open(args.file, "r") as file:
         try:
             value_file = yaml.safe_load(file)
@@ -37,16 +37,17 @@ def write_value(value):
             logging.error("Invalid value file")
             print(ex)
             exit(1)
-    currentDateTime = datetime.datetime.now()
-    date = currentDateTime.date()
-    year = int(date.strftime("%Y"))
-    if (value_file.get(year) is not None and value_file[year] > value):
-        raise Exception(f"Value in file {value_file[year]} is larger than retrieved value {value}")
-    if (value_file.get(year) is None or value_file[year] != value):
-        logging.info(f"Replacing value in file {value_file.get(year)} with {value}")
-        value_file[year] = value
-        with open(args.file, 'w') as file:
-            yaml.dump(value_file, file)
+
+    for key, value in values.items():
+        if (value_file.get(key) is not None and value_file[key] > value):
+            raise Exception(f"Value in file {value_file[key]} for {key} is larger than retrieved value {value}")
+        if (value_file.get(key) is None or value_file[key] != value):
+            logging.info(f"Replacing value for {key} in file {value_file.get(key)} with {value}")
+            value_file[key] = value
+    
+    with open(args.file, 'w') as file:
+        yaml.dump(value_file, file)
+    
     total = 0
     for value in value_file.values():
         total += value
@@ -80,7 +81,7 @@ def fetch_value():
 
         to_dt = datetime.datetime.fromtimestamp(int(time.time()))
         to_ux = calendar.timegm(to_dt.timetuple()) * 1000
-        from_dt = to_dt.replace(second=0, minute=0, hour=0, day=1, month=1)
+        from_dt = to_dt.replace(second=0, minute=0, hour=0, day=1, month=to_dt.month - 3)
         from_ux = calendar.timegm(from_dt.timetuple()) * 1000
         logging.info(f"Fetching data from {from_dt} to {to_dt}")
 
@@ -109,15 +110,22 @@ def fetch_value():
         
         chart_data = data.json().get("ELECTRIC")[0].get("meterToChartData")
 
-        total = 0
+        totals = {}
         for key in chart_data.keys():
             if key.__contains__(sawnee_config.service_location_number):
                 meter_data = chart_data.get(key)
                 for value in meter_data:
-                    total += value.get("y")
+                    dt = datetime.datetime.fromtimestamp(int(value.get("x")) / 1000)
+                    if dt > from_dt:
+                        key = f"{dt.year}-{dt.month}"
+                        value = value.get("y")
+                        if totals.get(key) is not None:
+                            totals[key] = totals[key] + value
+                        else:
+                            totals[key] = value
 
-        logging.info(f"Total fetched from {from_dt} to {to_dt} is {total}")
-        return write_value(total)
+        logging.info(f"Totals fetched from {from_dt} to {to_dt} is {totals}")
+        return write_value(totals)
     except Exception as ex:
         logging.error(f"Error: {ex}")
         return None
