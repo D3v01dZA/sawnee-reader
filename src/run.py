@@ -116,7 +116,7 @@ def fetch_value():
                 meter_data = chart_data.get(key)
                 for value in meter_data:
                     dt = datetime.datetime.fromtimestamp(int(value.get("x")) / 1000)
-                    if dt > from_dt:
+                    if dt >= from_dt:
                         key = f"{dt.year}-{dt.month}"
                         value = value.get("y")
                         if totals.get(key) is not None:
