@@ -81,7 +81,14 @@ def fetch_value():
 
         to_dt = datetime.datetime.fromtimestamp(int(time.time()))
         to_ux = calendar.timegm(to_dt.timetuple()) * 1000
-        from_dt = to_dt.replace(second=0, minute=0, hour=0, day=1, month=to_dt.month - 3)
+        year = to_dt.year
+        month = to_dt.month
+        if month - 3 < 1:
+            year = year - 1
+            month = 12 - -(month - 3)
+        else:
+            month = month - 3
+        from_dt = to_dt.replace(second=0, minute=0, hour=0, day=1, month=month, year=year)
         from_ux = calendar.timegm(from_dt.timetuple()) * 1000
         logging.info(f"Fetching data from {from_dt} to {to_dt}")
 
