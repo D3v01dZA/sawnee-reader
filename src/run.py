@@ -119,17 +119,20 @@ def fetch_value():
 
         totals = {}
         for key in chart_data.keys():
-            if key.__contains__(sawnee_config.service_location_number):
+            if sawnee_config.service_location_number in key:
                 meter_data = chart_data.get(key)
+                existing = set()
                 for value in meter_data:
                     dt = datetime.datetime.fromtimestamp(int(value.get("x")) / 1000)
-                    if dt >= from_dt:
-                        key = f"{dt.year}-{dt.month}"
-                        value = value.get("y")
-                        if totals.get(key) is not None:
-                            totals[key] = totals[key] + value
-                        else:
-                            totals[key] = value
+                    if not dt in existing:
+                        existing.add(dt)
+                        if dt >= from_dt:
+                            key = f"{dt.year}-{dt.month}"
+                            value = value.get("y")
+                            if totals.get(key) is not None:
+                                totals[key] = totals[key] + value
+                            else:
+                                totals[key] = value
 
         logging.info(f"Totals fetched from {from_dt} to {to_dt} is {totals}")
         return write_value(totals)
